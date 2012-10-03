@@ -25,7 +25,7 @@ from setuptools import setup
 
 setup(
     name='pymaker',
-    version='0.2.0',
+    version='0.1.0',
     author='MongoLab Team',
     author_email='team@mongolab.com',
     description='python maker',
@@ -34,9 +34,6 @@ setup(
     url='https://github.com/objectlabs/pymaker',
     license='MIT',
     install_requires=[
-        'pymongo==2.1.1',
-    ],
-    dependency_links=[
-        "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1"
+        'pymongo==2.3.0',
     ]
 )
