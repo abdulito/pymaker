@@ -64,6 +64,15 @@ class ObjectCollection:
         return self.make_obj( result )
 
     ###########################################################################
+    def find_and_modify(self, query=None, update=None):
+        result = self.collection.find_and_modify(query=query, update=update)
+        return self.make_obj(result)
+
+    ###########################################################################
+    def save_document(self, document):
+        self.collection.save(document)
+
+    ###########################################################################
     def make_obj( self, doc ):
         return self.maker.make(doc)
 

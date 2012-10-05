@@ -1,20 +1,36 @@
 import inspect
 import json
+import re
 
-from bson import json_util
-
+from bson import json_util, ObjectId
+from datetime import datetime, date
 
 ####  CONSTANTS
 
 TYPE_FIELD = '_type'
+
 ###############################################################################
-def resolve_class( kls ):
-    parts = kls.split('.')
-    module = ".".join(parts[:-1])
-    m = __import__( module )
-    for comp in parts[1:]:
-        m = getattr(m, comp)
-    return m
+# Maker Exception class
+###############################################################################
+class MakerException(Exception):
+    def __init__(self, message,cause=None):
+        self.message  = message
+        self.cause = cause
+
+    def __str__(self):
+        return self.message
+
+###############################################################################
+def resolve_class(kls):
+    try:
+        parts = kls.split('.')
+        module = ".".join(parts[:-1])
+        m = __import__( module )
+        for comp in parts[1:]:
+            m = getattr(m, comp)
+        return m
+    except Exception, e:
+        raise MakerException("Cannot resolve class '%s'. Cause: %s" % (kls, e))
 
 ###############################################################################
 
@@ -38,7 +54,9 @@ class Maker():
             return None
 
         # primitive types
-        if isinstance(datum, (str, unicode, bool, int, long, float, complex)):
+        if isinstance(datum, (str, unicode, bool,
+                              int, long, float, complex,
+                              date, datetime, ObjectId)):
             return datum
 
         if (inspect.isroutine(datum) or
@@ -67,11 +85,13 @@ class Maker():
         result = self.instantiate(datum)
 
         # define properties
-        for prop_name, prop_value in datum.items():
-            if (prop_name not in self.ignore_fields and
-                prop_name != TYPE_FIELD):
-                value = self.make(prop_value)
-                self._define_property(result, prop_name, value)
+        for key, value in datum.items():
+            if (key not in self.ignore_fields and
+                key != TYPE_FIELD):
+                prop_name = self.resolve_property_name(key)
+                prop_val = self.make(value)
+
+                self._set_object_property(result, prop_name, prop_val)
 
         return result
 
@@ -95,7 +115,7 @@ class Maker():
         return obj_type()
 
     ###########################################################################
-    def _define_property(self, obj, property, value):
+    def _set_object_property(self, obj, property, value):
         setattr(obj, property, value)
 
     ###########################################################################
@@ -104,6 +124,16 @@ class Maker():
             return resolve_class(self.type_bindings[type_name])
         else:
             return resolve_class(type_name)
+
+    ###########################################################################
+    def resolve_property_name(self, datum_prop_name):
+        # TODO use a mapping
+        return un_camelcase(datum_prop_name)
+
+###############################################################################
+def un_camelcase(property_name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', property_name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 ###############################################################################
 # GenericDocObject
